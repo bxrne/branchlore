@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bxrne/branchlore/internal/metrics"
 	"github.com/bxrne/branchlore/internal/types"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
@@ -78,6 +79,11 @@ func (r *Repository) ensureInitialCommit(repo *git.Repository) error {
 }
 
 func (r *Repository) CreateBranch(name string) (*types.Branch, error) {
+	start := time.Now()
+	defer func() {
+		metrics.GitOperationDuration.WithLabelValues("create_branch").Observe(time.Since(start).Seconds())
+	}()
+
 	if r.repo == nil {
 		return nil, errors.New("repository not initialized")
 	}
@@ -103,6 +109,11 @@ func (r *Repository) CreateBranch(name string) (*types.Branch, error) {
 }
 
 func (r *Repository) GetBranch(name string) (*types.Branch, error) {
+	start := time.Now()
+	defer func() {
+		metrics.GitOperationDuration.WithLabelValues("get_branch").Observe(time.Since(start).Seconds())
+	}()
+
 	if r.repo == nil {
 		return nil, errors.New("repository not initialized")
 	}
@@ -127,6 +138,11 @@ func (r *Repository) GetBranch(name string) (*types.Branch, error) {
 }
 
 func (r *Repository) ListBranches() ([]*types.Branch, error) {
+	start := time.Now()
+	defer func() {
+		metrics.GitOperationDuration.WithLabelValues("list_branches").Observe(time.Since(start).Seconds())
+	}()
+
 	if r.repo == nil {
 		return nil, errors.New("repository not initialized")
 	}
@@ -159,6 +175,11 @@ func (r *Repository) ListBranches() ([]*types.Branch, error) {
 }
 
 func (r *Repository) CreateWorktree(branch string) (string, error) {
+	start := time.Now()
+	defer func() {
+		metrics.GitOperationDuration.WithLabelValues("create_worktree").Observe(time.Since(start).Seconds())
+	}()
+
 	if r.repo == nil {
 		return "", errors.New("repository not initialized")
 	}
@@ -187,6 +208,11 @@ func (r *Repository) CreateWorktree(branch string) (string, error) {
 }
 
 func (r *Repository) MergeBranches(source, target string) (*types.MergeResult, error) {
+	start := time.Now()
+	defer func() {
+		metrics.GitOperationDuration.WithLabelValues("merge_branches").Observe(time.Since(start).Seconds())
+	}()
+
 	if r.repo == nil {
 		return nil, errors.New("repository not initialized")
 	}

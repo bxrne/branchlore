@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/bxrne/branchlore/internal/metrics"
 	"github.com/bxrne/branchlore/internal/types"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -42,18 +44,25 @@ func (s *SQLiteDB) Close() error {
 }
 
 func (s *SQLiteDB) Query(ctx context.Context, sqlQuery string) (*types.QueryResult, error) {
+	start := time.Now()
+	defer func() {
+		metrics.DBQueryDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	if s.db == nil {
 		return nil, fmt.Errorf("database not open")
 	}
 
 	rows, err := s.db.QueryContext(ctx, sqlQuery)
 	if err != nil {
+		metrics.DBQueryErrors.Inc()
 		return nil, err
 	}
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
+		metrics.DBQueryErrors.Inc()
 		return nil, err
 	}
 
@@ -66,6 +75,7 @@ func (s *SQLiteDB) Query(ctx context.Context, sqlQuery string) (*types.QueryResu
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
+			metrics.DBQueryErrors.Inc()
 			return nil, err
 		}
 
@@ -83,6 +93,7 @@ func (s *SQLiteDB) Query(ctx context.Context, sqlQuery string) (*types.QueryResu
 	}
 
 	if err := rows.Err(); err != nil {
+		metrics.DBQueryErrors.Inc()
 		return nil, err
 	}
 
@@ -94,11 +105,19 @@ func (s *SQLiteDB) Query(ctx context.Context, sqlQuery string) (*types.QueryResu
 }
 
 func (s *SQLiteDB) Exec(ctx context.Context, sqlQuery string) error {
+	start := time.Now()
+	defer func() {
+		metrics.DBQueryDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	if s.db == nil {
 		return fmt.Errorf("database not open")
 	}
 
 	_, err := s.db.ExecContext(ctx, sqlQuery)
+	if err != nil {
+		metrics.DBQueryErrors.Inc()
+	}
 	return err
 }
 
@@ -185,12 +204,18 @@ func (s *SQLiteDB) BeginTx(ctx context.Context) (*sql.Tx, error) {
 }
 
 func (s *SQLiteDB) ExecTx(ctx context.Context, tx *sql.Tx, queries []string) error {
+	start := time.Now()
+	defer func() {
+		metrics.DBQueryDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	for _, query := range queries {
 		query = strings.TrimSpace(query)
 		if query == "" {
 			continue
 		}
 		if _, err := tx.ExecContext(ctx, query); err != nil {
+			metrics.DBQueryErrors.Inc()
 			return err
 		}
 	}
