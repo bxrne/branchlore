@@ -52,7 +52,7 @@ func (m *Manager) InitDatabase(dbName string) error {
 		return fmt.Errorf("failed to configure git email: %w", err)
 	}
 
-	configNameCmd := exec.Command("git", "config", "user.name", "BranchLore")
+	configNameCmd := exec.Command("git", "config", "user.name", "branchlore")
 	configNameCmd.Dir = dbPath
 	if err := configNameCmd.Run(); err != nil {
 		return fmt.Errorf("failed to configure git name: %w", err)
